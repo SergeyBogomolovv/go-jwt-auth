@@ -3,7 +3,8 @@ package config
 import (
 	"log"
 
-	"github.com/SergeyBogomolovv/go-jwt-auth/pkg/env"
+	"go-jwt-auth/pkg/env"
+
 	"github.com/joho/godotenv"
 )
 
