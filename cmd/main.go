@@ -1,7 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/SergeyBogomolovv/go-jwt-auth/internal/config"
+)
 
 func main() {
-	fmt.Println("Hello world")
+	cfg := config.New()
+	fmt.Println(cfg)
 }
