@@ -1,7 +1,7 @@
 package config
 
 import (
-	"log"
+	"fmt"
 
 	"go-jwt-auth/pkg/env"
 
@@ -15,9 +15,9 @@ type Config struct {
 	JwtSecret   []byte
 }
 
-func New() *Config {
+func New() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		return nil, fmt.Errorf("error loading .env file: %v", err)
 	}
 
 	return &Config{
@@ -25,5 +25,5 @@ func New() *Config {
 		Host:        env.GetString("HOST", "localhost"),
 		Port:        uint16(env.GetInt("PORT", 8080)),
 		JwtSecret:   []byte(env.GetString("JWT_SECRET", "secret")),
-	}
+	}, nil
 }

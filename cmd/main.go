@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"strconv"
 
 	"go-jwt-auth/internal/app"
 	"go-jwt-auth/internal/config"
@@ -10,13 +9,16 @@ import (
 )
 
 func main() {
-	cfg := config.New()
+	cfg, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	db, err := db.New(cfg.PostgresURL)
 	if err != nil {
-		log.Fatalf("Error connecting to database: %v", err)
+		log.Fatal(err)
 	}
 	defer db.Close()
 
-	app.New(db).Run(cfg.Host + ":" + strconv.Itoa(int(cfg.Port)))
+	app.New(db, cfg).Run()
 }

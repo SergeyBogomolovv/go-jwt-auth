@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"go-jwt-auth/internal/config"
 	"log"
 	"net/http"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -16,12 +18,14 @@ import (
 type App struct {
 	db     *sqlx.DB
 	router *chi.Mux
+	cfg    *config.Config
 }
 
-func New(db *sqlx.DB) *App {
+func New(db *sqlx.DB, cfg *config.Config) *App {
 	return &App{
 		db:     db,
 		router: chi.NewRouter(),
+		cfg:    cfg,
 	}
 }
 
@@ -36,7 +40,9 @@ func (app *App) RegisterRoutes() {
 	})
 }
 
-func (app *App) Run(addr string) {
+func (app *App) Run() {
+	addr := app.cfg.Host + ":" + strconv.Itoa(int(app.cfg.Port))
+
 	app.RegisterRoutes()
 	server := &http.Server{
 		Addr:    addr,
