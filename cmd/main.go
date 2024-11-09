@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"strconv"
 
+	"go-jwt-auth/internal/app"
 	"go-jwt-auth/internal/config"
 	"go-jwt-auth/internal/db"
 )
@@ -17,5 +18,5 @@ func main() {
 	}
 	defer db.Close()
 
-	fmt.Println(cfg)
+	app.New(db).Run(cfg.Host + ":" + strconv.Itoa(int(cfg.Port)))
 }
