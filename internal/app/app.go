@@ -3,7 +3,10 @@ package app
 import (
 	"context"
 	"go-jwt-auth/internal/config"
-	"log"
+	"go-jwt-auth/internal/controllers"
+	"go-jwt-auth/internal/repositories"
+	"go-jwt-auth/internal/usecases"
+	"log/slog"
 	"net/http"
 	"os/signal"
 	"strconv"
@@ -12,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -34,6 +38,11 @@ func (app *App) RegisterRoutes() {
 	app.router.Use(middleware.RealIP)
 	app.router.Use(middleware.Logger)
 	app.router.Use(middleware.Recoverer)
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
+	usersRepository := repositories.NewUserRepository(app.db)
+	authUsecase := usecases.NewAuthUsecase(usersRepository)
+	controllers.NewAuthController(authUsecase, validate).RegisterRoutes(app.router)
 
 	app.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World!"))
@@ -53,9 +62,9 @@ func (app *App) Run() {
 	defer stop()
 
 	go func() {
-		log.Printf("Server started on %s", addr)
+		slog.Info("Starting server", "addr", addr)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Error starting server: %v", err)
+			slog.Error("Error starting server", "error", err)
 		}
 	}()
 	<-ctx.Done()
@@ -65,8 +74,8 @@ func (app *App) Run() {
 	defer cancel()
 
 	if err := server.Shutdown(shutdownCtx); err != nil {
-		log.Fatalf("Error shutting down server: %v", err)
+		slog.Error("Error shutting down server", "error", err)
 	}
 
-	log.Println("Server stopped")
+	slog.Info("Server stopped")
 }
