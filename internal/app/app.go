@@ -41,7 +41,7 @@ func (app *App) RegisterRoutes() {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	usersRepository := repositories.NewUserRepository(app.db)
-	authUsecase := usecases.NewAuthUsecase(usersRepository)
+	authUsecase := usecases.NewAuthUsecase(usersRepository, app.cfg.JwtSecret)
 	controllers.NewAuthController(authUsecase, validate).RegisterRoutes(app.router)
 
 	app.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
