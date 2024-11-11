@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-jwt-auth/internal/config"
 	"go-jwt-auth/internal/controllers"
+	mw "go-jwt-auth/internal/middleware"
 	"go-jwt-auth/internal/repositories"
 	"go-jwt-auth/internal/usecases"
 	"log/slog"
@@ -41,8 +42,13 @@ func (app *App) RegisterRoutes() {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	usersRepository := repositories.NewUserRepository(app.db)
+
 	authUsecase := usecases.NewAuthUsecase(usersRepository, app.cfg.JwtSecret)
+	usersUsecase := usecases.NewUsersUsecase(usersRepository)
+
+	authMiddleware := mw.NewAuthMiddleware(authUsecase)
 	controllers.NewAuthController(authUsecase, validate).RegisterRoutes(app.router)
+	controllers.NewUsersController(usersUsecase, validate).RegisterRoutes(app.router, authMiddleware.Middleware)
 }
 
 func (app *App) Run() {

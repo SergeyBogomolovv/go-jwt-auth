@@ -33,6 +33,33 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*domain.
 	return entity.ToModel(), nil
 }
 
+func (r *userRepository) GetAllUsers(ctx context.Context) ([]domain.UserModel, error) {
+	query := `SELECT * FROM users`
+
+	entities := make([]domain.UserEntity, 0)
+	if err := r.db.SelectContext(ctx, &entities, query); err != nil {
+		return nil, err
+	}
+
+	users := make([]domain.UserModel, 0)
+	for _, entity := range entities {
+		users = append(users, *entity.ToModel())
+	}
+
+	return users, nil
+}
+
+func (r *userRepository) UpdateUsername(ctx context.Context, id uint64, username string) (*domain.UserModel, error) {
+	query := `UPDATE users SET username = $1 WHERE user_id = $2 RETURNING *`
+
+	entity := new(domain.UserEntity)
+	if err := r.db.GetContext(ctx, entity, query, username, id); err != nil {
+		return nil, err
+	}
+
+	return entity.ToModel(), nil
+}
+
 func (r *userRepository) GetByUsername(ctx context.Context, username string) (*domain.UserModel, error) {
 	query := `SELECT * FROM users WHERE username = $1`
 

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	constants "go-jwt-auth/internal"
 	"go-jwt-auth/internal/domain"
 	"go-jwt-auth/pkg/utils"
 	"log/slog"
@@ -37,7 +38,7 @@ func (c *authController) Login(w http.ResponseWriter, r *http.Request) {
 
 	jwtResponse, err := c.useCase.Login(r.Context(), dto)
 	if err != nil {
-		if err.Error() == domain.ErrInvalidCredentials {
+		if err.Error() == constants.ErrInvalidCredentials {
 			utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid credentials"))
 			return
 		} else {
@@ -64,7 +65,7 @@ func (c *authController) Register(w http.ResponseWriter, r *http.Request) {
 
 	jwtResponse, err := c.useCase.Register(r.Context(), dto)
 	if err != nil {
-		if err.Error() == domain.ErrUserAlreadyExists {
+		if err.Error() == constants.ErrUserAlreadyExists {
 			utils.WriteError(w, http.StatusConflict, errors.New("user already exists"))
 		} else {
 			utils.WriteError(w, http.StatusInternalServerError, err)

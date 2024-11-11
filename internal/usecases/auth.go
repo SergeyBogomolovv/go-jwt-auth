@@ -3,6 +3,7 @@ package usecases
 import (
 	"context"
 	"errors"
+	constants "go-jwt-auth/internal"
 	"go-jwt-auth/internal/domain"
 	"strconv"
 	"time"
@@ -30,7 +31,7 @@ func (u *authUsecase) Register(ctx context.Context, dto *domain.RegisterDTO) (*d
 	}
 
 	if isUserExits {
-		return nil, errors.New(domain.ErrUserAlreadyExists)
+		return nil, errors.New(constants.ErrUserAlreadyExists)
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(dto.Password), bcrypt.DefaultCost)
@@ -58,11 +59,11 @@ func (u *authUsecase) Register(ctx context.Context, dto *domain.RegisterDTO) (*d
 func (u *authUsecase) Login(ctx context.Context, dto *domain.LoginDTO) (*domain.JWTResponse, error) {
 	user, err := u.repo.GetByEmail(ctx, dto.Email)
 	if err != nil {
-		return nil, errors.New(domain.ErrInvalidCredentials)
+		return nil, errors.New(constants.ErrInvalidCredentials)
 	}
 
 	if err := u.VerifyPassword(dto.Password, user.Password); err != nil {
-		return nil, errors.New(domain.ErrInvalidCredentials)
+		return nil, errors.New(constants.ErrInvalidCredentials)
 	}
 
 	token, err := u.signToken(user.ID)
@@ -77,42 +78,21 @@ func (u *authUsecase) Login(ctx context.Context, dto *domain.LoginDTO) (*domain.
 
 func (u *authUsecase) signToken(userId uint64) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"user_id": strconv.Itoa(int(userId)),
-		"exp":     time.Now().Add(u.jwtExp).Unix(),
+		"iss": "auth-app",
+		"sub": strconv.Itoa(int(userId)),
+		"exp": time.Now().Add(u.jwtExp).Unix(),
+		"iat": time.Now().Unix(),
 	}).SignedString(u.jwtSecret)
 }
 
-func (u *authUsecase) VerifyToken(tokenString string) (*domain.JWTPayload, error) {
+func (u *authUsecase) VerifyToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New(domain.ErrTokenIvalid)
-		}
 		return u.jwtSecret, nil
 	})
-
 	if err != nil || !token.Valid {
-		return nil, errors.New(domain.ErrTokenIvalid)
+		return nil, errors.New(constants.ErrTokenIvalid)
 	}
-
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New(domain.ErrTokenIvalid)
-	}
-
-	userId, err := strconv.ParseUint(claims["user_id"].(string), 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	exp, ok := claims["exp"].(float64)
-	if !ok {
-		return nil, errors.New(domain.ErrTokenIvalid)
-	}
-
-	return &domain.JWTPayload{
-		UserID: userId,
-		Exp:    time.Duration(exp),
-	}, nil
+	return token, nil
 }
 
 func (u *authUsecase) HashPassword(password string) (string, error) {
