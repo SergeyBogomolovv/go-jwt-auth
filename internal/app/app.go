@@ -43,10 +43,6 @@ func (app *App) RegisterRoutes() {
 	usersRepository := repositories.NewUserRepository(app.db)
 	authUsecase := usecases.NewAuthUsecase(usersRepository, app.cfg.JwtSecret)
 	controllers.NewAuthController(authUsecase, validate).RegisterRoutes(app.router)
-
-	app.router.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, World!"))
-	})
 }
 
 func (app *App) Run() {

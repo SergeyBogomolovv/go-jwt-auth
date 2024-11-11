@@ -1,17 +1,78 @@
 package controllers
 
 import (
+	"context"
+	"errors"
+	"go-jwt-auth/internal/domain"
+	"go-jwt-auth/pkg/utils"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
-type AuthUsecase interface{}
+type AuthUsecase interface {
+	Register(ctx context.Context, dto *domain.RegisterDTO) (*domain.JWTResponse, error)
+	Login(ctx context.Context, dto *domain.LoginDTO) (*domain.JWTResponse, error)
+}
 
 type authController struct {
 	useCase  AuthUsecase
 	validate *validator.Validate
+}
+
+func (c *authController) Login(w http.ResponseWriter, r *http.Request) {
+	dto := new(domain.LoginDTO)
+
+	if err := utils.ParseJSON(r, dto); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := c.validate.Struct(dto); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	jwtResponse, err := c.useCase.Login(r.Context(), dto)
+	if err != nil {
+		if err.Error() == domain.ErrInvalidCredentials {
+			utils.WriteError(w, http.StatusUnauthorized, errors.New("invalid credentials"))
+			return
+		} else {
+			utils.WriteError(w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, jwtResponse)
+}
+
+func (c *authController) Register(w http.ResponseWriter, r *http.Request) {
+	dto := new(domain.RegisterDTO)
+
+	if err := utils.ParseJSON(r, dto); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := c.validate.Struct(dto); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	jwtResponse, err := c.useCase.Register(r.Context(), dto)
+	if err != nil {
+		if err.Error() == domain.ErrUserAlreadyExists {
+			utils.WriteError(w, http.StatusConflict, errors.New("user already exists"))
+		} else {
+			utils.WriteError(w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, jwtResponse)
 }
 
 func NewAuthController(useCase AuthUsecase, validate *validator.Validate) *authController {
@@ -22,13 +83,9 @@ func NewAuthController(useCase AuthUsecase, validate *validator.Validate) *authC
 }
 
 func (c *authController) RegisterRoutes(router *chi.Mux) {
+	slog.Info("auth router registered")
 	router.Route("/auth", func(r chi.Router) {
-		router.Post("/login", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("login"))
-		})
-
-		router.Post("/register", func(w http.ResponseWriter, r *http.Request) {
-			w.Write([]byte("register"))
-		})
+		r.Post("/login", c.Login)
+		r.Post("/register", c.Register)
 	})
 }
