@@ -3,7 +3,7 @@ MIGRATIONS_PATH = ./cmd/migrations
 
 .PHONY: build
 build:
-	@go build -o bin/auth cmd/main.go
+	@go build -o bin/main cmd/main.go
 
 .PHONY: test
 test:
@@ -11,7 +11,7 @@ test:
 
 .PHONY: run
 run: build
-	@./bin/auth
+	@./bin/main
 
 .PHONY:	migrate-create
 migrate-create:
