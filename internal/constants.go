@@ -7,5 +7,5 @@ const (
 	ErrTokenIvalid                   = "token ivalid"
 	ErrInvalidCredentials            = "invalid credentials"
 	ErrUnathorized                   = "unauthorized"
-	UserIdKey             ContextKey = "user_id"
+	AuthUserId            ContextKey = "middleware.auth.userId"
 )

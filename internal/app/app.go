@@ -4,7 +4,7 @@ import (
 	"context"
 	"go-jwt-auth/internal/config"
 	"go-jwt-auth/internal/controllers"
-	mw "go-jwt-auth/internal/middleware"
+	"go-jwt-auth/internal/middleware"
 	"go-jwt-auth/internal/repositories"
 	"go-jwt-auth/internal/usecases"
 	"log/slog"
@@ -14,31 +14,25 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 )
 
 type App struct {
 	db     *sqlx.DB
-	router *chi.Mux
+	router *http.ServeMux
 	cfg    *config.Config
 }
 
 func New(db *sqlx.DB, cfg *config.Config) *App {
 	return &App{
 		db:     db,
-		router: chi.NewRouter(),
+		router: http.NewServeMux(),
 		cfg:    cfg,
 	}
 }
 
 func (app *App) RegisterRoutes() {
-	app.router.Use(middleware.RequestID)
-	app.router.Use(middleware.RealIP)
-	app.router.Use(middleware.Logger)
-	app.router.Use(middleware.Recoverer)
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	usersRepository := repositories.NewUserRepository(app.db)
@@ -46,7 +40,7 @@ func (app *App) RegisterRoutes() {
 	authUsecase := usecases.NewAuthUsecase(usersRepository, app.cfg.JwtSecret)
 	usersUsecase := usecases.NewUsersUsecase(usersRepository)
 
-	authMiddleware := mw.NewAuthMiddleware(authUsecase)
+	authMiddleware := middleware.NewAuthMiddleware(authUsecase)
 	controllers.NewAuthController(authUsecase, validate).RegisterRoutes(app.router)
 	controllers.NewUsersController(usersUsecase, validate).RegisterRoutes(app.router, authMiddleware.Middleware)
 }
@@ -57,7 +51,7 @@ func (app *App) Run() {
 	app.RegisterRoutes()
 	server := &http.Server{
 		Addr:    addr,
-		Handler: app.router,
+		Handler: middleware.Logger(app.router),
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
