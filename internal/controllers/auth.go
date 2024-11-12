@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -83,10 +82,11 @@ func NewAuthController(useCase AuthUsecase, validate *validator.Validate) *authC
 	}
 }
 
-func (c *authController) RegisterRoutes(router *chi.Mux) {
+func (c *authController) RegisterRoutes(router *http.ServeMux) {
+	auth := http.NewServeMux()
+	auth.HandleFunc("POST /login", c.Login)
+	auth.HandleFunc("POST /register", c.Register)
+
+	router.Handle("/auth/", http.StripPrefix("/auth", auth))
 	slog.Info("auth router registered")
-	router.Route("/auth", func(r chi.Router) {
-		r.Post("/login", c.Login)
-		r.Post("/register", c.Register)
-	})
 }

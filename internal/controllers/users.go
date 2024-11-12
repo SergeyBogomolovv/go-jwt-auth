@@ -5,10 +5,11 @@ import (
 	"errors"
 	constants "go-jwt-auth/internal"
 	"go-jwt-auth/internal/domain"
+	"go-jwt-auth/internal/middleware"
 	"go-jwt-auth/pkg/utils"
+	"log/slog"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -22,12 +23,13 @@ type usersController struct {
 	validate *validator.Validate
 }
 
-func (c *usersController) RegisterRoutes(router *chi.Mux, mw func(http.Handler) http.Handler) {
-	router.Route("/users", func(r chi.Router) {
-		r.Use(mw)
-		r.Get("/", c.GetAllUsers)
-		r.Put("/update-username", c.UpdateUsername)
-	})
+func (c *usersController) RegisterRoutes(router *http.ServeMux, mw middleware.Middleware) {
+	users := http.NewServeMux()
+	users.HandleFunc("GET /all", c.GetAllUsers)
+	users.HandleFunc("PUT /update-username", c.UpdateUsername)
+
+	router.Handle("/users/", http.StripPrefix("/users", mw(users)))
+	slog.Info("users router registered")
 }
 
 func (c *usersController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
@@ -40,7 +42,7 @@ func (c *usersController) GetAllUsers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *usersController) UpdateUsername(w http.ResponseWriter, r *http.Request) {
-	id := r.Context().Value(constants.UserIdKey).(uint64)
+	id := r.Context().Value(constants.AuthUserId).(uint64)
 
 	dto := new(domain.UpdateUsernameDTO)
 	if err := utils.ParseJSON(r, dto); err != nil {
