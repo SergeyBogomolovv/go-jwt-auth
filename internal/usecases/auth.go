@@ -46,7 +46,7 @@ func (u *authUsecase) Register(ctx context.Context, dto *domain.RegisterDTO) (*d
 		return nil, err
 	}
 
-	token, err := u.signToken(user.ID)
+	token, err := u.SignToken(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (u *authUsecase) Login(ctx context.Context, dto *domain.LoginDTO) (*domain.
 		return nil, errors.New(constants.ErrInvalidCredentials)
 	}
 
-	token, err := u.signToken(user.ID)
+	token, err := u.SignToken(user.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (u *authUsecase) Login(ctx context.Context, dto *domain.LoginDTO) (*domain.
 	}, nil
 }
 
-func (u *authUsecase) signToken(userId uint64) (string, error) {
+func (u *authUsecase) SignToken(userId uint64) (string, error) {
 	return jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"iss": "auth-app",
 		"sub": strconv.Itoa(int(userId)),
